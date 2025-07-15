@@ -6,6 +6,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\GeminiController;
 use App\Http\Controllers\DailyChallengeController;
 
+// ゲスト用ルート
 Route::middleware('guest')->group(function () {
     // サインアップ
     Route::get('register', [AuthController::class, 'showRegisterForm'])->name('register');
@@ -16,37 +17,27 @@ Route::middleware('guest')->group(function () {
     Route::post('login', [AuthController::class, 'login']);
 });
 
-Route::post('logout', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
-
-// 認証後のホーム
-Route::get('/', [GeminiController::class, 'index'])->middleware('auth')->name('home');
-
-// いったんコメントアウト
-Route::get('/', [GeminiController::class, 'entry'])->middleware('auth')->name('entry');
-
-// Route::get('/gemini/list-models', [GeminiController::class, 'listAvailableModels']);
-
+// 認証が必要なルート
 Route::middleware('auth')->group(function () {
-    // // カレンダー用データ取得
-    // Route::get('/daily-challenges', [DailyChallengeController::class, 'index'])
-    //     ->name('daily-challenges.index');
+    // ログアウト
+    Route::post('logout', [AuthController::class, 'logout'])->name('logout');
 
-    // // 今日のチャレンジを「完了」にする
-    // Route::post('/daily-challenges/complete', [DailyChallengeController::class, 'complete'])
-    //     ->name('daily-challenges.complete');
-
-    // ホーム画面
+    // ホーム画面（DailyChallengeController を使用）
     Route::get('/', [DailyChallengeController::class, 'index'])->name('home');
 
-    // Ajax: 完了ボタン
-    Route::post(
-        '/daily-challenges/complete',
-        [DailyChallengeController::class, 'complete']
-    )->name('daily-challenges.complete');
+    // デバッグ用: GETでアクセスできるテストルート
+    Route::get('/daily-challenges/test', function () {
+        return response()->json([
+            'message' => 'Daily challenges routes are accessible',
+            'user_id' => auth()->id()
+        ]);
+    });
 
-    // Ajax: お題を変えるボタン ← ここを追加
-    Route::post(
-        '/daily-challenges/change',
-        [DailyChallengeController::class, 'change']
-    )->name('daily-challenges.change');
+    // Ajax: 完了ボタン
+    Route::post('/daily-challenges/complete', [DailyChallengeController::class, 'complete'])
+        ->name('daily-challenges.complete');
+
+    // Ajax: お題を変えるボタン
+    Route::post('/daily-challenges/change', [DailyChallengeController::class, 'change'])
+        ->name('daily-challenges.change');
 });

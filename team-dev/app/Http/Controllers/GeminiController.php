@@ -14,12 +14,13 @@ class GeminiController extends Controller {
 
     public function entry() {
         // ダイエット中の人向けに簡単な運動プランを提案するプロンプトを追加
-        $systemPrompt = "あなたはフィットネスコーチ。ダイエット中の人が毎日楽しく取り組める、1日限りの簡単な運動を提案。条件：具体的な内容40字以内。";
+        // $systemPrompt = "あなたはフィットネスコーチ。ダイエット中の人が毎日楽しく取り組める、1日限りの簡単な運動を提案。条件：具体的な内容40字以内。";
+        $systemPrompt = "1日限りの簡単な運動を提案。条件：具体的な内容40字以内。";
 
         // Geminiへのコマンドを組み立て
         $toGeminiCommand = $systemPrompt;
 
-        $response = Gemini::generativeModel("gemini-1.5-flash")->generateContent($toGeminiCommand)->text();
+        $response = Gemini::generativeModel("gemini-2.0-flash-001")->generateContent($toGeminiCommand)->text();
         // $response = Gemini::geminiPro()
         //     ->generateContent($toGeminiCommand)
         //     ->text();
