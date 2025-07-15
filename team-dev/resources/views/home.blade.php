@@ -7,9 +7,36 @@
     {{-- 今日のチャレンジ --}}
     <div id="today-challenge" class="mb-4">
         <h2>今日のチャレンジ</h2>
-        <p id="challenge-task"></p>
-        <button id="completeChallengeBtn" class="btn btn-success">完了する</button>
-        <button id="change-btn" class="btn btn-secondary">お題を変える</button>
+        <!-- <p id="challenge-task"></p> -->
+        <audio
+            id="fireworksSound"
+            preload="auto"
+            crossorigin="anonymous"
+            src="https://cdn.jsdelivr.net/gh/sfx-datasets/fireworks@main/fireworks-pop-2s.mp3">
+        </audio>
+
+        <div class="wrapper">
+            <!-- <div class="card"> -->
+                <div class="goal-row">
+                    <div class="goal-card">
+                        <span id="challenge-task" class="goal-text"></span>
+                    </div>
+                    <button class="change-btn" aria-label="Reload">
+                        <svg viewBox="0 0 24 24" width="30" height="30" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="23 4 23 10 17 10" />
+                            <polyline points="1 20 1 14 7 14" />
+                            <path d="M3.51 9a9 9 0 0 1 14.13-3.36L23 10" />
+                            <path d="M20.49 15a9 9 0 0 1-14.13 3.36L1 14" />
+                        </svg>
+                    </button>
+                </div>
+                <button id="completeChallengeBtn">達成！</button>
+            <!-- </div> -->
+        </div>
+
+        <script src="app.js"></script>
+        <!-- <button id="completeChallengeBtn" class="btn btn-success">完了する</button> -->
+        <!-- <button id="change-btn" class="btn btn-secondary">お題を変える</button> -->
     </div>
 
     {{-- カレンダー --}}

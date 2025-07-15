@@ -129,7 +129,8 @@ class DailyChallengeController extends Controller {
         // Geminiへのコマンドを組み立て
         $toGeminiCommand = $systemPrompt;
 
-        $response = Gemini::generativeModel("gemini-1.5-flash")->generateContent($toGeminiCommand)->text();
+        // $response = Gemini::generativeModel("gemini-1.5-flash")->generateContent($toGeminiCommand)->text();
+        $response = '（テストモード：AI 呼び出しをスキップしました）';
 
         return $response;
     }
