@@ -71,11 +71,9 @@ function spawnConfetti(x, y) {
 
 // カスタムモーダル表示関数
 function showChallengeModal(content, date) {
-    // 既存のモーダルがあれば削除
     const existingModal = document.getElementById('challenge-modal');
     if (existingModal) existingModal.remove();
 
-    // モーダルの作成
     const modal = document.createElement('div');
     modal.id = 'challenge-modal';
     modal.className = 'modal-overlay';
@@ -91,10 +89,8 @@ function showChallengeModal(content, date) {
         </div>
     `;
 
-    // モーダルを表示
     document.body.appendChild(modal);
 
-    // クローズボタンとオーバーレイクリックでモーダルを閉じる
     const closeBtn = modal.querySelector('.modal-close');
     closeBtn.addEventListener('click', () => modal.remove());
     modal.addEventListener('click', (e) => {
@@ -111,128 +107,254 @@ function waitForFullCalendar(callback) {
     }
 }
 
+// 達成率を更新する関数
+function updateProgressCircle(events) {
+    const progressElement = document.querySelector('circle-progress');
+    if (!progressElement) {
+        console.warn('circle-progress element not found');
+        return;
+    }
+
+    const todayDate = new Date();
+    const currentDay = todayDate.getDate();
+    const currentMonth = todayDate.getMonth() + 1;
+
+    const thisMonthEvents = events.filter(e => {
+        const d = new Date(e.start);
+        return (d.getMonth() + 1) === currentMonth && d.getDate() <= currentDay;
+    });
+
+    const completedDays = thisMonthEvents.filter(e => e.extendedProps.is_completed).length;
+    const percentage = currentDay > 0 ? Math.floor((completedDays / currentDay) * 100) : 0;
+
+    progressElement.setAttribute('value', percentage);
+    progressElement.style.transition = 'all 0.8s ease';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
     // --- Blade側で埋め込む<meta>タグからURLを取得 ---
     const routeDailyComplete = document.querySelector('meta[name="route-daily-complete"]')?.content;
     const routeDailyChange = document.querySelector('meta[name="route-daily-change"]')?.content;
     const routeLogout = document.querySelector('meta[name="route-logout"]')?.content;
     const routeLogin = document.querySelector('meta[name="route-login"]')?.content;
+    const routeWeightStore = document.querySelector('meta[name="route-weight-store"]')?.content;
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
 
     // 必須要素がない場合は処理を中断
-    if (!routeDailyComplete || !routeDailyChange || !routeLogout || !routeLogin || !csrfToken) {
-        console.error('必要なメタタグが見つかりません');
+    if (!csrfToken) {
+        console.error('CSRFトークンが見つかりません');
         return;
     }
 
     // コントローラから渡されたイベント配列
     const events = window._calendarEvents || [];
 
-    // FullCalendarが読み込まれたら初期化
-    waitForFullCalendar(() => {
-        // カレンダー初期化
-        const today = new Date().toISOString().slice(0, 10);
-        const calendarEl = document.getElementById('calendar');
+    // 初期表示時に達成率を更新
+    updateProgressCircle(events);
 
-        if (!calendarEl) {
-            console.error('カレンダー要素が見つかりません');
-            return;
-        }
+    // ===== チャレンジ管理部分 =====
+    if (routeDailyComplete && routeDailyChange) {
+        waitForFullCalendar(() => {
+            const today = new Date().toISOString().slice(0, 10);
+            const calendarEl = document.getElementById('calendar');
 
-        const calendar = new FullCalendar.Calendar(calendarEl, {
-            initialView: 'dayGridMonth',
-            events: events,
-            dateClick(info) {
-                const ev = calendar.getEventById(info.dateStr);
-                if (ev) showChallengeModal(ev.extendedProps.content, info.dateStr);
+            if (!calendarEl) {
+                console.warn('カレンダー要素が見つかりません');
+                return;
             }
-        });
-        calendar.render();
 
-        // 本日のお題 & ボタン設定
-        const taskEl = document.getElementById('challenge-task');
-        const completeBtn = document.getElementById('completeChallengeBtn');
+            const calendar = new FullCalendar.Calendar(calendarEl, {
+                initialView: 'dayGridMonth',
+                events: events,
+                dateClick(info) {
+                    const ev = calendar.getEventById(info.dateStr);
+                    if (ev) showChallengeModal(ev.extendedProps.content, info.dateStr);
+                }
+            });
+            calendar.render();
 
-        if (!taskEl || !completeBtn) {
-            console.error('必要な要素が見つかりません');
-            return;
-        }
+            const taskEl = document.getElementById('challenge-task');
+            const completeBtn = document.getElementById('completeChallengeBtn');
 
-        const todaysEvent = events.find(e => e.id === today);
-        if (todaysEvent) {
-            taskEl.innerHTML = todaysEvent.extendedProps.content;
-            if (todaysEvent.extendedProps.is_completed) {
-                completeBtn.textContent = '完了済み';
-                completeBtn.disabled = true;
-            }
-        } else {
-            taskEl.textContent = '本日のお題はまだありません';
-            completeBtn.disabled = true;
-        }
-
-        // 完了ボタン
-        completeBtn.addEventListener('click', e => {
-            e.preventDefault();
-            if (completeBtn.disabled) return;
-
-            createRipple(e, completeBtn);
-            const rect = completeBtn.getBoundingClientRect();
-            spawnConfetti(
-                rect.left + rect.width / 2,
-                rect.top + rect.height / 2
-            );
-            playChime();
-            finish(completeBtn);
-
-            fetch(routeDailyComplete, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken
-                },
-                body: JSON.stringify({ date: today })
-            })
-                .then(res => res.json())
-                .then(data => {
-                    const oldEv = calendar.getEventById(data.id);
-                    if (oldEv) oldEv.remove();
-                    calendar.addEvent(data);
-                    taskEl.innerHTML = data.extendedProps.content;
-                    completeBtn.textContent = '完了済み';
+            if (taskEl && completeBtn) {
+                const todaysEvent = events.find(e => e.id === today);
+                if (todaysEvent) {
+                    taskEl.innerHTML = todaysEvent.extendedProps.content;
+                    if (todaysEvent.extendedProps.is_completed) {
+                        completeBtn.textContent = '完了済み';
+                        completeBtn.disabled = true;
+                    }
+                } else {
+                    taskEl.textContent = '本日のお題はまだありません';
                     completeBtn.disabled = true;
-                })
-                .catch(() => alert('完了処理でエラーが発生しました'));
-        });
+                }
 
-        // お題変更ボタン
-        const changeBtn = document.getElementById('change-btn');
-        if (changeBtn) {
-            changeBtn.addEventListener('click', () => {
-                fetch(routeDailyChange, {
+                completeBtn.addEventListener('click', e => {
+                    e.preventDefault();
+                    if (completeBtn.disabled) return;
+
+                    createRipple(e, completeBtn);
+                    const rect = completeBtn.getBoundingClientRect();
+                    spawnConfetti(rect.left + rect.width / 2, rect.top + rect.height / 2);
+                    playChime();
+                    finish(completeBtn);
+
+                    fetch(routeDailyComplete, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRF-TOKEN': csrfToken
+                        },
+                        body: JSON.stringify({ date: today })
+                    })
+                        .then(res => res.json())
+                        .then(data => {
+                            const oldEv = calendar.getEventById(data.id);
+                            if (oldEv) oldEv.remove();
+                            calendar.addEvent(data);
+                            taskEl.innerHTML = data.extendedProps.content;
+                            completeBtn.textContent = '完了済み';
+                            completeBtn.disabled = true;
+
+                            const eventIndex = events.findIndex(e => e.id === data.id);
+                            if (eventIndex !== -1) {
+                                events[eventIndex] = data;
+                            } else {
+                                events.push(data);
+                            }
+                            updateProgressCircle(events);
+                        })
+                        .catch(() => alert('完了処理でエラーが発生しました'));
+                });
+
+                const changeBtn = document.getElementById('change-btn');
+                if (changeBtn) {
+                    changeBtn.addEventListener('click', () => {
+                        fetch(routeDailyChange, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': csrfToken
+                            },
+                            body: JSON.stringify({ date: today })
+                        })
+                            .then(res => res.json())
+                            .then(data => {
+                                const oldEv = calendar.getEventById(data.id);
+                                if (oldEv) oldEv.remove();
+                                calendar.addEvent(data);
+                                taskEl.innerHTML = data.extendedProps.content;
+                                completeBtn.textContent = '完了する';
+                                completeBtn.disabled = false;
+                            })
+                            .catch(() => alert('お題変更に失敗しました'));
+                    });
+                }
+            }
+        });
+    }
+
+    // ===== 体重管理部分 =====
+    const weightForm = document.getElementById('weightForm');
+    console.log('Weight form found:', !!weightForm);
+    console.log('Weight store route:', routeWeightStore);
+
+    if (weightForm && routeWeightStore) {
+        // グローバル変数として体重データを保持
+        window.userWeightRecords = window.userWeightRecords || [];
+
+        weightForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            console.log('Weight form submitted');
+
+            const formData = new FormData(e.target);
+            const submitBtn = document.getElementById('weightSubmitBtn');
+            const messageDiv = document.getElementById('saveMessage');
+
+            // フォームデータの確認
+            const requestData = {
+                date: formData.get('date'),
+                weight: formData.get('weight')
+            };
+            console.log('Request data:', requestData);
+
+            submitBtn.disabled = true;
+            submitBtn.textContent = '登録中...';
+
+            try {
+                console.log('Sending request to:', routeWeightStore);
+                const response = await fetch(routeWeightStore, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'X-CSRF-TOKEN': csrfToken
                     },
-                    body: JSON.stringify({ date: today })
-                })
-                    .then(res => res.json())
-                    .then(data => {
-                        const oldEv = calendar.getEventById(data.id);
-                        if (oldEv) oldEv.remove();
-                        calendar.addEvent(data);
-                        taskEl.innerHTML = data.extendedProps.content;
-                        completeBtn.textContent = '完了する';
-                        completeBtn.disabled = false;
-                    })
-                    .catch(() => alert('お題変更に失敗しました'));
-            });
-        }
-    });
+                    body: JSON.stringify(requestData)
+                });
+
+                console.log('Response status:', response.status);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
+                const data = await response.json();
+                console.log('Response data:', data);
+
+                if (data.success) {
+                    window.userWeightRecords = data.allWeights;
+                    console.log('Updated weight records:', window.userWeightRecords);
+
+                    // グラフ更新関数が存在する場合は実行
+                    if (typeof window.updateWeightChart === 'function') {
+                        window.updateWeightChart();
+                        console.log('Weight chart updated');
+                    }
+
+                    if (messageDiv) {
+                        messageDiv.innerHTML = '<div class="alert alert-success">登録しました</div>';
+                    }
+
+                    const weightInput = document.getElementById('weightInput');
+                    if (weightInput) {
+                        weightInput.value = '';
+                    }
+
+                    setTimeout(() => {
+                        if (messageDiv) messageDiv.innerHTML = '';
+                    }, 3000);
+                } else {
+                    console.error('Server returned success:false', data);
+                    if (messageDiv) {
+                        messageDiv.innerHTML = '<div class="alert alert-danger">登録に失敗しました</div>';
+                    }
+                }
+            } catch (error) {
+                console.error('Error details:', error);
+                if (messageDiv) {
+                    messageDiv.innerHTML = '<div class="alert alert-danger">エラーが発生しました: ' + error.message + '</div>';
+                }
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = '登録';
+            }
+        });
+    } else {
+        console.warn('Weight form not found or route not defined');
+    }
+
+    // ===== 体重グラフ部分 =====
+    const chartEl = document.getElementById('chart');
+    const yearSel = document.getElementById('yearSel');
+    const monthSel = document.getElementById('monthSel');
+
+    if (chartEl && yearSel && monthSel) {
+        initWeightChart();
+    }
 
     // ログアウト
     const logoutBtn = document.getElementById('logoutBtn');
-    if (logoutBtn) {
+    if (logoutBtn && routeLogout) {
         logoutBtn.addEventListener('click', () => {
             fetch(routeLogout, {
                 method: 'POST',
@@ -244,16 +366,178 @@ document.addEventListener('DOMContentLoaded', () => {
                 .then(response => {
                     if (response.redirected) {
                         window.location.href = response.url;
-                    } else {
+                    } else if (routeLogin) {
                         window.location.href = routeLogin;
                     }
                 });
         });
     }
 
-    // リロードボタン（存在する場合）
+    // リロードボタン
     const reloadBtn = document.getElementById('reloadBtn');
     if (reloadBtn) {
         reloadBtn.addEventListener('click', () => location.reload());
     }
 });
+
+// ===== 体重グラフ関連の関数 =====
+function initWeightChart() {
+    const yearSel = document.getElementById('yearSel');
+    const monthSel = document.getElementById('monthSel');
+    const metaStats = document.getElementById('metaStats');
+    const titleEl = document.getElementById('cjsTitle');
+    const ctx = document.getElementById('chart')?.getContext('2d');
+
+    if (!yearSel || !monthSel || !ctx) return;
+
+    // ユーティリティ関数
+    function getDaysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+
+    function buildDailyTotals(records, y, m) {
+        const days = getDaysInMonth(y, m);
+        const totals = Array(days).fill(null);
+        records.forEach(r => {
+            const d = new Date(r.date);
+            if (d.getFullYear() === y && d.getMonth() + 1 === m) {
+                const idx = d.getDate() - 1;
+                totals[idx] = r.weight;
+            }
+        });
+        return totals;
+    }
+
+    function calcStats(data) {
+        const nums = data.filter(v => v != null);
+        if (!nums.length) return { min: null, max: null, avg: null };
+        const min = Math.min(...nums);
+        const max = Math.max(...nums);
+        const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+        return { min, max, avg };
+    }
+
+    function fmt(num) { return (num == null ? '--' : num.toFixed(1)); }
+
+    // 年月セレクタを構築
+    const now = new Date();
+    const nowY = now.getFullYear();
+    for (let y = nowY - 2; y <= nowY + 1; y++) yearSel.add(new Option(y, y));
+    for (let m = 1; m <= 12; m++) monthSel.add(new Option(m, m));
+    yearSel.value = nowY;
+    monthSel.value = now.getMonth() + 1;
+
+    // タイトル更新
+    function updateTitle(y, m) {
+        const isThisMonth = (y === nowY && m === (now.getMonth() + 1));
+        if (titleEl) {
+            titleEl.textContent = `${y}年${m}月` + (isThisMonth ? ' 今月' : '');
+        }
+    }
+
+    // Chart.js セットアップ
+    const rootScope = document.querySelector('.cjs-scope');
+    const BRAND_RGB = rootScope ? getComputedStyle(rootScope).getPropertyValue('--cjs-brand-rgb')?.trim() || '0,191,165' : '0,191,165';
+    const GRID_COLOR = rootScope ? getComputedStyle(rootScope).getPropertyValue('--cjs-border-grid')?.trim() || '#d0d0d0' : '#d0d0d0';
+    const FG_MUTED = rootScope ? getComputedStyle(rootScope).getPropertyValue('--cjs-fg-muted')?.trim() || '#666' : '#666';
+
+    function makeFillGradient(ctx, area) {
+        const g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+        g.addColorStop(0, `rgba(${BRAND_RGB},0.25)`);
+        g.addColorStop(1, `rgba(${BRAND_RGB},0.00)`);
+        return g;
+    }
+
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: '体重 (kg)',
+                data: [],
+                borderColor: `rgba(${BRAND_RGB},1)`,
+                backgroundColor: (context) => {
+                    const { chart, chartArea } = context;
+                    if (!chartArea) return `rgba(${BRAND_RGB},0.25)`;
+                    return makeFillGradient(chart.ctx, chartArea);
+                },
+                fill: true,
+                tension: 0.25,
+                spanGaps: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: `rgba(${BRAND_RGB},1)`,
+                pointBorderWidth: 0
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: FG_MUTED }
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: { color: GRID_COLOR, lineWidth: 0.5 },
+                    ticks: { color: FG_MUTED }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: (items) => {
+                            if (!items.length) return '';
+                            const day = items[0].label.toString().padStart(2, '0');
+                            const y = yearSel.value;
+                            const m = String(monthSel.value).padStart(2, '0');
+                            return `${y}-${m}-${day}`;
+                        },
+                        label: (ctx) => {
+                            const v = ctx.parsed.y;
+                            return v == null ? 'データなし' : `${v.toFixed(1)} kg`;
+                        }
+                    }
+                }
+            },
+            animation: { duration: 320, easing: 'easeOutQuart' }
+        }
+    });
+
+    // データ描画 & 統計表示
+    function draw(y, m) {
+        updateTitle(y, m);
+
+        const days = getDaysInMonth(y, m);
+        const data = buildDailyTotals(window.userWeightRecords || [], y, m);
+        chart.data.labels = Array.from({ length: days }, (_, i) => i + 1);
+        chart.data.datasets[0].data = data;
+        chart.update();
+
+        const { min, max, avg } = calcStats(data);
+        if (metaStats) {
+            metaStats.innerHTML = `最小 <strong>${fmt(min)}</strong> / 最大 <strong>${fmt(max)}</strong> / 平均 <strong>${fmt(avg)}</strong> kg`;
+        }
+    }
+
+    // グローバルに公開
+    window.updateWeightChart = () => {
+        draw(+yearSel.value, +monthSel.value);
+    };
+
+    // イベントリスナー
+    yearSel.addEventListener('change', () => draw(+yearSel.value, +monthSel.value));
+    monthSel.addEventListener('change', () => draw(+yearSel.value, +monthSel.value));
+
+    const jumpTodayBtn = document.getElementById('jumpTodayBtn');
+    if (jumpTodayBtn) {
+        jumpTodayBtn.addEventListener('click', () => {
+            const now = new Date();
+            yearSel.value = now.getFullYear();
+            monthSel.value = now.getMonth() + 1;
+            draw(+yearSel.value, +monthSel.value);
+        });
+    }
+
+    // 初期描画
+    draw(+yearSel.value, +monthSel.value);
+}

@@ -9,6 +9,7 @@
     <meta name="route-daily-change" content="{{ route('daily-challenges.change') }}">
     <meta name="route-logout" content="{{ route('logout') }}">
     <meta name="route-login" content="{{ route('login') }}">
+    <meta name="route-weight-store" content="{{ route('weight.store') }}">
 
     @isset($events)
     <script>
@@ -27,7 +28,8 @@
 
 <body>
     @yield('content')
-
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://unpkg.com/js-circle-progress/dist/circle-progress.min.js" type="module"></script>
     {{-- FullCalendarをapp.jsより前に読み込む --}}
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
 

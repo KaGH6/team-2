@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\HomeController;
 use App\Http\Controllers\GeminiController;
 use App\Http\Controllers\DailyChallengeController;
+use App\Http\Controllers\WeightController;
 
 // ゲスト用ルート
 Route::middleware('guest')->group(function () {
@@ -40,4 +41,13 @@ Route::middleware('auth')->group(function () {
     // Ajax: お題を変えるボタン
     Route::post('/daily-challenges/change', [DailyChallengeController::class, 'change'])
         ->name('daily-challenges.change');
+
+    // 体重登録（POST）
+    Route::post('/weight', [WeightController::class, 'store'])->name('weight.store');
+
+    Route::get('/weight/chart', [WeightController::class, 'chart'])->name('weight.chart');
+
+    // 月別データ取得（GET）
+    Route::get('/weights/data', [WeightController::class, 'data'])
+        ->name('weights.data');
 });

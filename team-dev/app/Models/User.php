@@ -47,4 +47,8 @@ class User extends Authenticatable {
     public function dailyChallenges() {
         return $this->hasMany(DailyChallenge::class);
     }
+
+    public function weights() {
+        return $this->hasMany(Weight::class);
+    }
 }

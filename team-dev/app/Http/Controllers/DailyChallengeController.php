@@ -7,6 +7,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Models\DailyChallenge;
 use Gemini\Laravel\Facades\Gemini;
+use Carbon\Carbon;
 
 class DailyChallengeController extends Controller {
     /**
@@ -15,39 +16,62 @@ class DailyChallengeController extends Controller {
      */
     public function index() {
         $user  = Auth::user();
-        $today = now()->toDateString();
+        $today = now()->format('Y-m-d'); // 日付のみ
 
-        // 今日のチャレンジを取得 or 新規作成
+        Log::info('Index method start', [
+            'user_id' => $user->id,
+            'today' => $today
+        ]);
+
+        // whereDateを使用して日付部分のみで検索
         $challenge = DailyChallenge::where('user_id', $user->id)
-            ->where('challenge_date', $today)
+            ->whereDate('challenge_date', $today)
             ->first();
 
         if (!$challenge) {
-            // 新規作成して保存
-            $challenge = DailyChallenge::create([
-                'user_id' => $user->id,
-                'challenge_date' => $today,
-                'challenge_text' => $this->generateChallengeText(),
-                'is_completed' => false
-            ]);
+            try {
+                // 存在しない場合のみ作成
+                $challenge = DailyChallenge::create([
+                    'user_id' => $user->id,
+                    'challenge_date' => $today, // Y-m-d形式で保存
+                    'challenge_text' => $this->generateChallengeText(),
+                    'is_completed' => false
+                ]);
 
-            Log::info('New challenge created', [
-                'user_id' => $user->id,
-                'date' => $today,
-                'id' => $challenge->id
-            ]);
+                Log::info('New challenge created', ['id' => $challenge->id]);
+            } catch (\Illuminate\Database\QueryException $e) {
+                // 並行処理で重複した場合
+                Log::warning('Duplicate key error caught, fetching existing', [
+                    'error' => $e->getMessage()
+                ]);
+
+                // 再度whereDateで検索
+                $challenge = DailyChallenge::where('user_id', $user->id)
+                    ->whereDate('challenge_date', $today)
+                    ->first();
+
+                if (!$challenge) {
+                    throw new \Exception('Failed to create or fetch challenge');
+                }
+            }
         }
 
         // 全チャレンジ記録を取得（カレンダー用）
         $records = $user->dailyChallenges()
-            ->get(['id', 'challenge_date', 'challenge_text', 'is_completed']);
+            ->orderBy('challenge_date', 'desc')
+            ->get();
 
         // FullCalendar が扱いやすい形式にマッピング
         $events = $records->map(function ($r) {
+            // challenge_dateを確実にY-m-d形式に変換
+            $dateStr = $r->challenge_date instanceof \DateTime
+                ? $r->challenge_date->format('Y-m-d')
+                : date('Y-m-d', strtotime($r->challenge_date));
+
             return [
-                'id'    => $r->challenge_date->format('Y-m-d'),
+                'id'    => $dateStr,
                 'title' => $r->challenge_text,
-                'start' => $r->challenge_date->format('Y-m-d'),
+                'start' => $dateStr,
                 'color' => $r->is_completed ? 'green' : 'blue',
                 'extendedProps' => [
                     'content'      => $r->challenge_text,
@@ -56,7 +80,6 @@ class DailyChallengeController extends Controller {
             ];
         });
 
-        // home.blade.php に $challenge と $events を渡す
         return view('home', compact('challenge', 'events'));
     }
 
@@ -65,61 +88,49 @@ class DailyChallengeController extends Controller {
      * — 指定日の is_completed を更新し、JSONを返す
      */
     public function complete(Request $request) {
-        Log::info('Complete method called', $request->all());
-
-        $request->validate([
-            'date' => 'required|date',
-        ]);
-
-        $user = Auth::user();
-        $date = $request->input('date');
-
-        Log::info('Looking for challenge', [
-            'user_id' => $user->id,
-            'date' => $date
-        ]);
-
-        // 日付を確実に文字列形式で比較
-        $challenge = DailyChallenge::where('user_id', $user->id)
-            ->whereDate('challenge_date', $date)
-            ->first();
-
-        if (!$challenge) {
-            // チャレンジが見つからない場合は作成
-            Log::warning('Challenge not found, creating new one', [
-                'user_id' => $user->id,
-                'date' => $date
+        try {
+            $request->validate([
+                'date' => 'required|date',
             ]);
 
-            $challenge = DailyChallenge::create([
-                'user_id' => $user->id,
-                'challenge_date' => $date,
-                'challenge_text' => $this->generateChallengeText(),
-                'is_completed' => false
-            ]);
-        }
+            $user = Auth::user();
+            $date = date('Y-m-d', strtotime($request->input('date')));
 
-        $challenge->update([
-            'is_completed' => true,
-            'completed_at' => now(),
-        ]);
+            // whereDateを使用
+            $challenge = DailyChallenge::where('user_id', $user->id)
+                ->whereDate('challenge_date', $date)
+                ->first();
 
-        Log::info('Challenge completed', [
-            'challenge_id' => $challenge->id,
-            'date' => $date
-        ]);
+            if (!$challenge) {
+                $challenge = DailyChallenge::create([
+                    'user_id' => $user->id,
+                    'challenge_date' => $date,
+                    'challenge_text' => $this->generateChallengeText(),
+                    'is_completed' => false
+                ]);
+            }
 
-        // カレンダー上の該当イベントだけ差し替えるためのJSON
-        return response()->json([
-            'id'    => $date,
-            'title' => $challenge->challenge_text,
-            'start' => $date,
-            'color' => 'green',
-            'extendedProps' => [
-                'content'      => $challenge->challenge_text,
+            // 完了状態に更新
+            $challenge->update([
                 'is_completed' => true,
-            ],
-        ]);
+                'completed_at' => now(),
+            ]);
+
+            // カレンダー上の該当イベントだけ差し替えるためのJSON
+            return response()->json([
+                'id'    => $date,
+                'title' => $challenge->challenge_text,
+                'start' => $date,
+                'color' => 'green',
+                'extendedProps' => [
+                    'content'      => $challenge->challenge_text,
+                    'is_completed' => true,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Complete method error: ' . $e->getMessage());
+            return response()->json(['error' => 'エラーが発生しました'], 500);
+        }
     }
 
     /**
@@ -127,58 +138,53 @@ class DailyChallengeController extends Controller {
      * — 指定日の challenge_text を再生成して JSON を返す
      */
     public function change(Request $request) {
-        Log::info('Change method called', $request->all());
-
-        $request->validate([
-            'date' => 'nullable|date',
-        ]);
-
-        $user  = Auth::user();
-        $date  = $request->input('date') ?? now()->toDateString();
-
-        Log::info('Processing change', [
-            'user_id' => $user->id,
-            'date' => $date
-        ]);
-
-        // 日付を確実に文字列形式で比較
-        $challenge = DailyChallenge::where('user_id', $user->id)
-            ->whereDate('challenge_date', $date)
-            ->first();
-
-        if (!$challenge) {
-            // 新規作成
-            $challenge = DailyChallenge::create([
-                'user_id' => $user->id,
-                'challenge_date' => $date,
-                'challenge_text' => $this->generateChallengeText(),
-                'is_completed' => false
+        try {
+            $request->validate([
+                'date' => 'nullable|date',
             ]);
-        } else {
-            // 既存のチャレンジを更新
+
+            $user  = Auth::user();
+            $date  = $request->input('date') ?
+                date('Y-m-d', strtotime($request->input('date'))) :
+                now()->toDateString();
+
+            // whereDateを使用して既存のレコードを検索
+            $challenge = DailyChallenge::where('user_id', $user->id)
+                ->whereDate('challenge_date', $date)
+                ->first();
+
+            if (!$challenge) {
+                // 新規作成
+                $challenge = DailyChallenge::create([
+                    'user_id' => $user->id,
+                    'challenge_date' => $date,
+                    'challenge_text' => $this->generateChallengeText(),
+                    'is_completed' => false
+                ]);
+            }
+
+            // 必ず新しいお題に更新（「お題を変える」ボタンが押されたので）
             $challenge->update([
                 'challenge_text' => $this->generateChallengeText(),
                 'is_completed' => false,
                 'completed_at' => null
             ]);
+
+            // カレンダー上の該当イベントだけ差し替えるためのJSON
+            return response()->json([
+                'id'    => $date,
+                'title' => $challenge->challenge_text,
+                'start' => $date,
+                'color' => 'blue',
+                'extendedProps' => [
+                    'content'      => $challenge->challenge_text,
+                    'is_completed' => false,
+                ],
+            ]);
+        } catch (\Exception $e) {
+            Log::error('Change method error: ' . $e->getMessage());
+            return response()->json(['error' => 'エラーが発生しました'], 500);
         }
-
-        Log::info('Challenge changed', [
-            'challenge_id' => $challenge->id,
-            'new_text' => $challenge->challenge_text
-        ]);
-
-        // カレンダー上の該当イベントだけ差し替えるためのJSON
-        return response()->json([
-            'id'    => $date,
-            'title' => $challenge->challenge_text,
-            'start' => $date,
-            'color' => 'blue',
-            'extendedProps' => [
-                'content'      => $challenge->challenge_text,
-                'is_completed' => false,
-            ],
-        ]);
     }
 
     /**

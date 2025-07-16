@@ -24,6 +24,12 @@ class DailyChallenge extends Model {
         'is_completed'   => 'boolean',
     ];
 
+    // 日付ミューテーターを追加
+    public function setChallengeDataAttribute($value) {
+        // 常にY-m-d形式で保存
+        $this->attributes['challenge_date'] = date('Y-m-d', strtotime($value));
+    }
+
     // ユーザーとのリレーション
     public function user() {
         return $this->belongsTo(User::class);
