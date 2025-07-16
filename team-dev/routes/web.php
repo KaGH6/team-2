@@ -48,6 +48,6 @@ Route::middleware('auth')->group(function () {
     Route::get('/weight/chart', [WeightController::class, 'chart'])->name('weight.chart');
 
     // 月別データ取得（GET）
-    Route::get('/weights/data', [WeightController::class, 'data'])
-        ->name('weights.data');
+    // Route::get('/weights/data', [WeightController::class, 'data'])
+    //     ->name('weights.data');
 });

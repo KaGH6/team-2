@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -31,7 +33,7 @@ class WeightController extends Controller {
             $weight = Weight::updateOrCreate(
                 [
                     'user_id' => $user->id,
-                    'recorded_at' => $request->date
+                    'recorded_at' => Carbon::parse($request->date)->format('Y-m-d H:i:s')
                 ],
                 ['weight' => $request->weight]
             );
