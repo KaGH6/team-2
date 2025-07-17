@@ -29,17 +29,17 @@
 <body>
     @if (!in_array(Route::currentRouteName(), ['login', 'register']))
     <header class="header">
-        <div class="headercontainer">
-            <h1 class="headerlogo"><a href="/"></a></h1>
+        <div class="header__container">
+            <h1 class="header__logo"><a href="/"></a></h1>
             <input type="checkbox" id="check">
             <label for="check" class="hamburger">
                 <span></span>
             </label>
             <nav class="nav">
-                <ul class="navlist">
-                    <li class="navitem"><a href="/">ホーム</a></li>
-                    <li class="navitem"><a href="#">体重管理</a></li>
-                    <li class="navitem"><a href="#">ログアウト</a></li>
+                <ul class="nav__list">
+                    <li class="nav__item"><a href="./">ホーム</a></li>
+                    <li class="nav__item"><a href="./weight">体重管理</a></li>
+                    <li class="nav__item"><button id="logoutBtn">ログアウト</button></li>
                 </ul>
             </nav>
         </div>

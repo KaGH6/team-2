@@ -23,6 +23,7 @@
     --bg: #fdfdfd;
     /* --bg-2: #f4f6fa; */
     --bg-2: #f9fafe;
+    --black: #081223;
     --accent: #6366f1;
     --accent-dark: #575bf4;
     --accent-light: #7a7eff;
@@ -42,6 +43,7 @@ body {
     display: flex;
     justify-content: center;
     padding: 4rem 3rem;
+    color: var(--black);
 }
 
 /* ヘッダー */
@@ -59,6 +61,8 @@ body {
     left: 0;
     right: 0;
     border-top: 2px solid #3ad79d;
+    z-index: 10000;
+    /* box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); */
 }
 
 .header__container {
@@ -155,7 +159,8 @@ body {
     border-radius: 0.5rem;
 }
 
-.header .nav__item a {
+.header .nav__item a,
+.header .nav__item button {
     position: relative;
     display: block;
     font-size: 20px;
@@ -169,7 +174,12 @@ body {
     transition: all 0.3s;
 }
 
-.header .nav__item a:hover {
+.header .nav__item button {
+    width: 100%;
+}
+
+.header .nav__item a:hover,
+.header .nav__item button:hover {
     color: black;
     /* background: linear-gradient(90deg, var(--accent-light), var(--accent-dark)); */
     padding-left: 20px;
@@ -193,7 +203,7 @@ body {
     /* max-width: 680px; */
     max-width: 800px;
     align-items: center;
-    margin-bottom: 2em;
+    margin-bottom: 1.5em;
 }
 
 /* .card {
@@ -308,6 +318,8 @@ body {
         box-shadow 0.18s ease;
     overflow: hidden;
     margin-left: 2em;
+    padding-left: 0.3em;
+    letter-spacing: 0.2em;
 }
 
 #completeChallengeBtn::before {
@@ -360,7 +372,7 @@ body {
 /* 円グラフ */
 .circle-graph {
     text-align: center;
-    margin-bottom: 3em;
+    margin-bottom: 4em;
 }
 
 .circle-graph h4 {
@@ -372,8 +384,8 @@ body {
 
 circle-progress {
     display: inline-block;
-    width: 10rem;
-    height: 10rem;
+    width: 12rem;
+    height: 12rem;
 }
 
 /* 円グラフ：SVG */
@@ -516,7 +528,7 @@ circle-progress::part(base) {
     }
 }
 
-/* 体重ページ */
+/* 体重管理ページ */
 #weight-section {
     background: var(--bg-2);
     padding: 1.5em;
@@ -524,7 +536,7 @@ circle-progress::part(base) {
     box-shadow: 0 4px 6px rgba(0, 0, 0, .06);
     height: 14rem;
     max-width: 550px;
-    margin: 0 auto 5em;
+    margin: 3em auto 5em;
     position: relative;
 }
 
@@ -549,19 +561,38 @@ circle-progress::part(base) {
 }
 
 #weight-section .btn {
-    font-size: 1.1rem;
+    /* font-size: 1.1rem;
     font-weight: 500;
     color: #fff;
     background-color: #3269a2;
     padding: 0.3em 0.7em;
     border-radius: 5px;
     box-shadow: 0 2px 7px rgba(100, 100, 100, 0.6);
-    transition: 0.3s;
+    transition: 0.3s; */
+
+    width: 6rem;
+    height: 3rem;
+    display: block;
+    margin: 0 auto;
+    font-weight: 600;
+    font-size: 1.2rem;
+    border: none;
+    border-radius: 15px;
+    cursor: pointer;
+    position: relative;
+    color: #fff;
+    background: linear-gradient(145deg,
+            var(--accent-light),
+            var(--accent-dark));
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.18), 0 6px 10px rgba(0, 0, 0, 0.1);
+    transition: transform 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94),
+        box-shadow 0.18s ease;
+    overflow: hidden;
 }
 
 #weight-section .btn:hover {
     cursor: pointer;
-    transform: translateY(-2px);
+    transform: translateY(-5px);
 }
 
 /* =========================================================

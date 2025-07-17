@@ -42,7 +42,6 @@
     {{-- 体重グラフ --}}
     <div class="cjs-scope">
         <h1 id="cjsTitle">--</h1>
-        <div class="cjs-meta-stats" id="metaStats">--</div>
         <div class="cjs-card">
             <div class="cjs-controls cjs-controls-inline-suffix">
                 <div class="cjs-inline-select">
@@ -58,7 +57,7 @@
                 <canvas id="chart"></canvas>
             </div>
 
-            {{-- <div class="cjs-meta-stats" id="metaStats">--</div> --}}
+            <div class="cjs-meta-stats" id="metaStats">--</div>
         </div>
     </div>
 

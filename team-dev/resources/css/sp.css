@@ -5,8 +5,25 @@
         padding: 4rem 1.5rem;
     }
 
+    /* 今日のチャレンジ */
+    #today-challenge .wrapper {
+        flex-direction: column;
+    }
 
+    #today-challenge .goal-row {
+        order: 1;
+        margin-top: 1em;
+    }
 
+    #today-challenge #change-btn {
+        order: 2;
+        margin-left: 1.2em;
+    }
 
+    #completeChallengeBtn {
+        width: 90%;
+        height: 4rem;
+        margin: 1.5em auto;
+    }
 
 }
