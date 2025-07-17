@@ -1,3 +1,4 @@
+@charset "UTF-8";
 @import 'tailwindcss';
 
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
@@ -19,7 +20,9 @@
 }
 
 :root {
-    --bg: #f4f6fa;
+    --bg: #fdfdfd;
+    /* --bg-2: #f4f6fa; */
+    --bg-2: #f9fafe;
     --accent: #6366f1;
     --accent-dark: #575bf4;
     --accent-light: #7a7eff;
@@ -38,19 +41,170 @@ body {
     font-family: "Inter", sans-serif;
     display: flex;
     justify-content: center;
-    padding: 4rem 1rem;
+    padding: 4rem 3rem;
 }
 
-.wrapper {
+/* ヘッダー */
+/* .body {
+    margin: 0;
+    background: #f4f6fa;
+    min-height: 100vh;
+} */
+
+.header {
+    height: 80px;
+    background-color: var(--bg);
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    border-top: 2px solid #3ad79d;
+}
+
+.header__container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: inherit;
+    color: #fff;
+    padding: 0 25px;
+    margin-right: auto;
+    margin-left: auto;
+}
+
+.header__logo a {
+    text-decoration: none;
+    font-size: 30px;
+    text-transform: uppercase;
+    color: white;
+    font-weight: bold;
+}
+
+/* ===============================================
+ハンバーガーボタンのスタイリング
+=============================================== */
+.header input[type="checkbox"] {
+    opacity: 0;
+    visibility: hidden;
+    position: absolute;
+}
+
+.hamburger {
+    display: block;
+    width: 50px;
+    height: 80px;
+    position: relative;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    cursor: pointer;
+}
+
+.hamburger span,
+.hamburger span::before,
+.hamburger span::after {
+    position: absolute;
+    display: block;
+    content: "";
     width: 100%;
-    max-width: 680px;
+    height: 2px;
+    background-color: black;
+    transition: all 0.5s;
 }
 
-.card {
+.hamburger span::before {
+    top: -10px;
+}
+
+.hamburger span::after {
+    bottom: -10px;
+}
+
+.header input[type="checkbox"]:checked+.hamburger span {
+    background-color: transparent;
+}
+
+.header input[type="checkbox"]:checked+.hamburger span::before {
+    top: 0;
+    transform: rotate(45deg);
+}
+
+.header input[type="checkbox"]:checked+.hamburger span::after {
+    transform: rotate(-45deg);
+    bottom: 0;
+}
+
+/* ===============================================
+メニューのスタイリング
+=============================================== */
+.header .nav {
+    position: fixed;
+    /* height: 25%; */
+    width: 20%;
+    top: 80px;
+    right: -120%;
+    background: linear-gradient(135deg, #f4f6fa 70%, #e1e5ee 100%);
+    border-left: 3px solid var(--success);
+    background: #f8fafd;
+    box-shadow: 0 8px 24px rgba(80, 90, 110, 0.13);
+    /* 文字色 */
+    color: #fff;
+    padding: 16px 0;
+    border-top: 1px solid #fff;
+    transition: all 0.5s;
+    border-radius: 0.5rem;
+}
+
+.header .nav__item a {
+    position: relative;
+    display: block;
+    font-size: 20px;
+    padding: 20px 0;
+    text-align: center;
+    text-transform: uppercase;
+    text-decoration: none;
+    /* background: #fff */
+    background: transparent;
+    color: black;
+    transition: all 0.3s;
+}
+
+.header .nav__item a:hover {
+    color: black;
+    /* background: linear-gradient(90deg, var(--accent-light), var(--accent-dark)); */
+    padding-left: 20px;
+}
+
+.header input[type="checkbox"]:checked~.nav {
+    right: 0;
+}
+
+/* 今日のチャレンジ */
+#today-challenge h2 {
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: var(--accent);
+    /* text-align: center; */
+    margin: 0.6em 0;
+}
+
+#today-challenge .wrapper {
+    width: 100%;
+    /* max-width: 680px; */
+    max-width: 800px;
+    align-items: center;
+    margin-bottom: 2em;
+}
+
+/* .card {
     background: #fff;
     border-radius: 1.5rem;
     padding: 3rem 2.5rem 4rem;
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.07);
+} */
+
+.container {
+    max-width: 1200px;
 }
 
 /* goal row */
@@ -59,7 +213,7 @@ body {
     align-items: center;
     justify-content: center;
     gap: 1.5rem;
-    margin-bottom: 2.8rem;
+    /* margin-bottom: 2.8rem; */
 }
 
 .goal-card {
@@ -72,6 +226,8 @@ body {
     padding: 1.4rem 2rem;
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
     min-height: 72px;
+    max-width: 550px;
+    margin-left: 1.5rem;
 }
 
 .goal-card::before {
@@ -90,9 +246,11 @@ body {
 }
 
 /* reload button (show on hover) */
-.change-btn {
-    width: 56px;
-    height: 56px;
+#change-btn {
+    aspect-ratio: 1 / 1;
+    flex-shrink: 0;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -108,10 +266,10 @@ body {
     transition: opacity 0.25s ease;
 }
 
-/* .card:hover .change-btn { */
-/*     opacity: 1; */
-/*     pointer-events: auto; */
-/* } */
+/* .card:hover .change-btn {
+    opacity: 1;
+    pointer-events: auto;
+} */
 
 .change-btn svg {
     width: 30px;
@@ -128,18 +286,15 @@ body {
     transform: rotate(360deg);
 }
 
-/* 今月の達成率 */
-.achieve {
-    margin-left: 3rem;
-}
-
 /* main button */
 #completeChallengeBtn {
+    width: 9rem;
+    height: 6rem;
     display: block;
     margin: 0 auto;
     font-weight: 600;
     font-size: 1.35rem;
-    padding: 1.3rem 3.8rem;
+    /* padding: 1.3rem 3.8rem; */
     border: none;
     border-radius: 1.3rem;
     cursor: pointer;
@@ -152,10 +307,7 @@ body {
     transition: transform 0.18s cubic-bezier(0.25, 0.46, 0.45, 0.94),
         box-shadow 0.18s ease;
     overflow: hidden;
-    /* ↓追記 */
-    /* width: fit-content;
-    position: absolute;
-    right: 20%; */
+    margin-left: 2em;
 }
 
 #completeChallengeBtn::before {
@@ -199,6 +351,37 @@ body {
     filter: saturate(0.9);
 }
 
+/* 今月の達成率 */
+.achieve {
+    /* margin-left: 3rem; */
+    width: 100%;
+}
+
+/* 円グラフ */
+.circle-graph {
+    text-align: center;
+    margin-bottom: 3em;
+}
+
+.circle-graph h4 {
+    font-size: 1.4rem;
+    font-weight: 500;
+    color: var(--accent);
+    margin: 0.5em 0;
+}
+
+circle-progress {
+    display: inline-block;
+    width: 10rem;
+    height: 10rem;
+}
+
+/* 円グラフ：SVG */
+circle-progress::part(base) {
+    width: 100%;
+    height: 100%;
+}
+
 .ripple {
     position: absolute;
     border-radius: 50%;
@@ -235,6 +418,11 @@ body {
         transform: translate(var(--dx), var(--dy)) rotate(720deg);
         opacity: 0;
     }
+}
+
+/* カレンダー */
+.fc .fc-view-harness {
+    background: var(--bg-2);
 }
 
 /* モーダルのスタイル */
@@ -328,6 +516,54 @@ body {
     }
 }
 
+/* 体重ページ */
+#weight-section {
+    background: var(--bg-2);
+    padding: 1.5em;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, .06);
+    height: 14rem;
+    max-width: 550px;
+    margin: 0 auto 5em;
+    position: relative;
+}
+
+#weight-section h2 {
+    font-size: 1.5rem;
+    font-weight: 500;
+    margin-bottom: 0.8em;
+}
+
+#weight-section .col-auto {
+    font-size: 1.2rem;
+}
+
+#weight-section .col-auto:nth-child(2) {
+    margin-bottom: 0.3em;
+}
+
+#weight-section .col-auto:last-child {
+    position: absolute;
+    bottom: 7%;
+    right: 4%;
+}
+
+#weight-section .btn {
+    font-size: 1.1rem;
+    font-weight: 500;
+    color: #fff;
+    background-color: #3269a2;
+    padding: 0.3em 0.7em;
+    border-radius: 5px;
+    box-shadow: 0 2px 7px rgba(100, 100, 100, 0.6);
+    transition: 0.3s;
+}
+
+#weight-section .btn:hover {
+    cursor: pointer;
+    transform: translateY(-2px);
+}
+
 /* =========================================================
  * Chart.js 月別グラフ 専用スコープ (cjs-*)
  * ========================================================= */
@@ -345,28 +581,31 @@ body {
     --cjs-tr-fast: 160ms;
 
     font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    background: var(--cjs-bg);
+    /* background: var(--cjs-bg); */
     color: var(--cjs-fg);
-    padding: clamp(16px, 2vw, 32px);
+    /* padding: clamp(16px, 2vw, 32px); */
     line-height: 1.5;
     transition: background var(--cjs-tr-fast) ease, color var(--cjs-tr-fast) ease;
 }
 
 .cjs-scope h1 {
-    font-size: clamp(1.4rem, 2vw, 2rem);
-    margin: 0 0 1.25em;
+    /* font-size: clamp(1.4rem, 2vw, 2rem); */
+    font-size: 1.7rem;
+    margin: 0 auto 1.25em;
     font-weight: 700;
     letter-spacing: .01em;
+    max-width: 800px;
 }
 
 .cjs-card {
     max-width: 800px;
     margin-inline: auto;
-    background: var(--cjs-bg-card);
+    background: var(--cjs-bg);
     border: 1px solid var(--cjs-border);
-    border-radius: var(--cjs-radius);
+    /* border-radius: var(--cjs-radius); */
+    border-radius: 10px;
     padding: clamp(16px, 2vw, 32px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, .06);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, .06);
     transition: background var(--cjs-tr-fast) ease, box-shadow var(--cjs-tr-fast) ease;
 }
 

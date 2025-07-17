@@ -23,10 +23,29 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css">
 
     {{-- Vite - CSSとJSを正しく読み込む --}}
-    @vite(['resources/css/app.css', 'resources/js/app.js'])
+    @vite(['resources/css/app.css','resources/css/sp.css', 'resources/js/app.js'])
 </head>
 
 <body>
+    @if (!in_array(Route::currentRouteName(), ['login', 'register']))
+    <header class="header">
+        <div class="headercontainer">
+            <h1 class="headerlogo"><a href="/"></a></h1>
+            <input type="checkbox" id="check">
+            <label for="check" class="hamburger">
+                <span></span>
+            </label>
+            <nav class="nav">
+                <ul class="navlist">
+                    <li class="navitem"><a href="/">ホーム</a></li>
+                    <li class="navitem"><a href="#">体重管理</a></li>
+                    <li class="navitem"><a href="#">ログアウト</a></li>
+                </ul>
+            </nav>
+        </div>
+    </header>
+    @endif
+
     @yield('content')
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://unpkg.com/js-circle-progress/dist/circle-progress.min.js" type="module"></script>

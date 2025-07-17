@@ -10,6 +10,19 @@ use Illuminate\Support\Facades\Log;
 use App\Models\Weight;
 
 class WeightController extends Controller {
+    // 体重管理ページ表示
+    public function index() {
+        // 月のデータを取得
+        $month = now()->format('Y-m');
+        $weightData = Auth::user()
+            ->weights()
+            ->where('date', 'like', "$month%")
+            ->orderBy('date')
+            ->get(['date', 'weight']);
+
+        return view('weight', compact('weightData'));
+    }
+
     public function store(Request $request) {
         try {
             // リクエストログ

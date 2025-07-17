@@ -26,6 +26,9 @@ Route::middleware('auth')->group(function () {
     // ホーム画面（DailyChallengeController を使用）
     Route::get('/', [DailyChallengeController::class, 'index'])->name('home');
 
+    // 体重管理画面（WeightController を使用）
+    Route::get('/weight', [WeightController::class, 'index'])->name('weights.index');
+
     // デバッグ用: GETでアクセスできるテストルート
     Route::get('/daily-challenges/test', function () {
         return response()->json([
