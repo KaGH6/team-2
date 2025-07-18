@@ -2,12 +2,39 @@
 
 namespace App\Http\Controllers;
 
+use Carbon\Carbon;
+
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use App\Models\Weight;
 
 class WeightController extends Controller {
+    // 体重管理ページ表示
+    public function index() {
+        // // 月のデータを取得
+        // $month = now()->format('Y-m');
+        // $weightData = Auth::user()
+        //     ->weights()
+        //     ->where('date', 'like', "$month%")
+        //     ->orderBy('date')
+        //     ->get(['date', 'weight']);
+
+        return view('weight');
+    }
+
+    public function getWeights(Request $request) {
+        // 月のデータを取得
+        $month = now()->format('Y-m');
+        $weightData = Auth::user()
+            ->weights()
+            ->where('date', 'like', "$month%")
+            ->orderBy('date')
+            ->get(['date', 'weight']);
+
+        return response()->json($weightData);
+    }
+
     public function store(Request $request) {
         try {
             // リクエストログ
@@ -31,7 +58,7 @@ class WeightController extends Controller {
             $weight = Weight::updateOrCreate(
                 [
                     'user_id' => $user->id,
-                    'recorded_at' => $request->date
+                    'recorded_at' => Carbon::parse($request->date)->format('Y-m-d H:i:s')
                 ],
                 ['weight' => $request->weight]
             );

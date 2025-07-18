@@ -42,12 +42,17 @@ Route::middleware('auth')->group(function () {
     Route::post('/daily-challenges/change', [DailyChallengeController::class, 'change'])
         ->name('daily-challenges.change');
 
+    // 体重管理画面（WeightController を使用）
+    Route::get('/weight', [WeightController::class, 'index'])->name('weights.index');
+
+    Route::get('/user/weights', [WeightController::class, 'getWeights'])->name('weights.getWeights');
+
     // 体重登録（POST）
     Route::post('/weight', [WeightController::class, 'store'])->name('weight.store');
 
     Route::get('/weight/chart', [WeightController::class, 'chart'])->name('weight.chart');
 
     // 月別データ取得（GET）
-    Route::get('/weights/data', [WeightController::class, 'data'])
-        ->name('weights.data');
+    // Route::get('/weights/data', [WeightController::class, 'data'])
+    //     ->name('weights.data');
 });
