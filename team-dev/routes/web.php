@@ -26,9 +26,6 @@ Route::middleware('auth')->group(function () {
     // ホーム画面（DailyChallengeController を使用）
     Route::get('/', [DailyChallengeController::class, 'index'])->name('home');
 
-    // 体重管理画面（WeightController を使用）
-    Route::get('/weight', [WeightController::class, 'index'])->name('weights.index');
-
     // デバッグ用: GETでアクセスできるテストルート
     Route::get('/daily-challenges/test', function () {
         return response()->json([
@@ -44,6 +41,11 @@ Route::middleware('auth')->group(function () {
     // Ajax: お題を変えるボタン
     Route::post('/daily-challenges/change', [DailyChallengeController::class, 'change'])
         ->name('daily-challenges.change');
+
+    // 体重管理画面（WeightController を使用）
+    Route::get('/weight', [WeightController::class, 'index'])->name('weights.index');
+
+    Route::get('/user/weights', [WeightController::class, 'getWeights'])->name('weights.getWeights');
 
     // 体重登録（POST）
     Route::post('/weight', [WeightController::class, 'store'])->name('weight.store');

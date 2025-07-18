@@ -2,7 +2,15 @@
 @media screen and (max-width: 767px) {
 
     body {
-        padding: 4rem 1.5rem;
+        padding: 4rem 1.2rem;
+    }
+
+    /* ヘッダー：ハンバーガーメニュー */
+    .header .nav {
+        width: 50%;
+        /* height: 100%;
+        top: 0;
+        padding-top: 5em; */
     }
 
     /* 今日のチャレンジ */
@@ -12,12 +20,44 @@
 
     #today-challenge .goal-row {
         order: 1;
-        margin-top: 1em;
+        position: relative;
+    }
+
+    .goal-row::before {
+        display: none;
+    }
+
+    /* .goal-row::after {
+        content: "🏃‍♂️";
+        font-size: 1.6rem;
+        position: absolute;
+        top: -5%;
+        right: -58px;
+    } */
+
+    #today-challenge .goal-card {
+        margin: 0 auto;
+        padding: 1.4rem 0.7rem;
+    }
+
+    #today-challenge .goal-text {
+        font-size: 1.2rem;
     }
 
     #today-challenge #change-btn {
         order: 2;
         margin-left: 1.2em;
+        margin-top: 0.6em;
+    }
+
+    @media screen and (max-width: 450px) {
+        #today-challenge #change-btn {
+            position: absolute;
+            top: -50px;
+            right: 0;
+            margin-left: 0;
+            margin-top: 0;
+        }
     }
 
     #completeChallengeBtn {

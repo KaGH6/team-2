@@ -62,7 +62,7 @@ body {
     right: 0;
     border-top: 2px solid #3ad79d;
     z-index: 10000;
-    /* box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1); */
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
 }
 
 .header__container {
@@ -102,6 +102,7 @@ body {
     justify-content: center;
     align-items: center;
     cursor: pointer;
+    z-index: 20000;
 }
 
 .hamburger span,
@@ -189,7 +190,23 @@ body {
     right: 0;
 }
 
+/* ヘッダー内の文字 */
+.header__current-page {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 24px;
+    font-weight: 550;
+    color: #333;
+    z-index: 1;
+    pointer-events: none;
+}
+
 /* 今日のチャレンジ */
+#today-challenge {
+    margin-top: 2em;
+}
+
 #today-challenge h2 {
     font-size: 1.6rem;
     font-weight: 700;
@@ -319,7 +336,7 @@ body {
     overflow: hidden;
     margin-left: 2em;
     padding-left: 0.3em;
-    letter-spacing: 0.2em;
+    letter-spacing: 0.1em;
 }
 
 #completeChallengeBtn::before {

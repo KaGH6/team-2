@@ -131,7 +131,256 @@ function updateProgressCircle(events) {
     progressElement.style.transition = 'all 0.8s ease';
 }
 
+// ===== 体重グラフ関連の関数 =====
+function initWeightChart(csrfToken) {
+    const yearSel = document.getElementById('yearSel');
+    const monthSel = document.getElementById('monthSel');
+    const metaStats = document.getElementById('metaStats');
+    const titleEl = document.getElementById('cjsTitle');
+    const ctx = document.getElementById('chart')?.getContext('2d');
+
+    if (!yearSel || !monthSel || !ctx) {
+        console.log('Weight chart elements not found');
+        return;
+    }
+
+    console.log('Initializing weight chart');
+
+    // ユーティリティ関数
+    function getDaysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
+
+    function buildDailyTotals(records, y, m) {
+        const days = getDaysInMonth(y, m);
+        const totals = Array(days).fill(null);
+        records.forEach(r => {
+            const d = new Date(r.date);
+            if (d.getFullYear() === y && d.getMonth() + 1 === m) {
+                const idx = d.getDate() - 1;
+                totals[idx] = r.weight;
+            }
+        });
+        return totals;
+    }
+
+    function calcStats(data) {
+        const nums = data.filter(v => v != null);
+        if (!nums.length) return { min: null, max: null, avg: null };
+        const min = Math.min(...nums);
+        const max = Math.max(...nums);
+        const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
+        return { min, max, avg };
+    }
+
+    function fmt(num) { return (num == null ? '--' : num.toFixed(1)); }
+
+    // 年月セレクタを構築
+    const now = new Date();
+    const nowY = now.getFullYear();
+    for (let y = nowY - 2; y <= nowY + 1; y++) yearSel.add(new Option(y, y));
+    for (let m = 1; m <= 12; m++) monthSel.add(new Option(m, m));
+
+    // 前回の選択を復元（localStorage使用）
+    const savedYear = localStorage.getItem('weightChart_selectedYear');
+    const savedMonth = localStorage.getItem('weightChart_selectedMonth');
+
+    yearSel.value = savedYear || nowY;
+    monthSel.value = savedMonth || (now.getMonth() + 1);
+
+    // タイトル更新
+    function updateTitle(y, m) {
+        const isThisMonth = (y === nowY && m === (now.getMonth() + 1));
+        if (titleEl) {
+            titleEl.textContent = `${y}年${m}月` + (isThisMonth ? ' 今月' : '');
+        }
+    }
+
+    // Chart.js セットアップ
+    const rootScope = document.querySelector('.cjs-scope');
+    const BRAND_RGB = rootScope ? getComputedStyle(rootScope).getPropertyValue('--cjs-brand-rgb')?.trim() || '0,191,165' : '0,191,165';
+    const GRID_COLOR = rootScope ? getComputedStyle(rootScope).getPropertyValue('--cjs-border-grid')?.trim() || '#d0d0d0' : '#d0d0d0';
+    const FG_MUTED = rootScope ? getComputedStyle(rootScope).getPropertyValue('--cjs-fg-muted')?.trim() || '#666' : '#666';
+
+    function makeFillGradient(ctx, area) {
+        const g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
+        g.addColorStop(0, `rgba(${BRAND_RGB},0.25)`);
+        g.addColorStop(1, `rgba(${BRAND_RGB},0.00)`);
+        return g;
+    }
+
+    const chart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: [],
+            datasets: [{
+                label: '体重 (kg)',
+                data: [],
+                borderColor: `rgba(${BRAND_RGB},1)`,
+                backgroundColor: (context) => {
+                    const { chart, chartArea } = context;
+                    if (!chartArea) return `rgba(${BRAND_RGB},0.25)`;
+                    return makeFillGradient(chart.ctx, chartArea);
+                },
+                fill: true,
+                tension: 0.25,
+                spanGaps: true,
+                pointRadius: 4,
+                pointHoverRadius: 6,
+                pointBackgroundColor: `rgba(${BRAND_RGB},1)`,
+                pointBorderWidth: 0
+            }]
+        },
+        options: {
+            maintainAspectRatio: false,
+            scales: {
+                x: {
+                    grid: { display: false },
+                    ticks: { color: FG_MUTED }
+                },
+                y: {
+                    beginAtZero: false,
+                    grid: { color: GRID_COLOR, lineWidth: 0.5 },
+                    ticks: { color: FG_MUTED }
+                }
+            },
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    callbacks: {
+                        title: (items) => {
+                            if (!items.length) return '';
+                            const day = items[0].label.toString().padStart(2, '0');
+                            const y = yearSel.value;
+                            const m = String(monthSel.value).padStart(2, '0');
+                            return `${y}-${m}-${day}`;
+                        },
+                        label: (ctx) => {
+                            const v = ctx.parsed.y;
+                            return v == null ? 'データなし' : `${v.toFixed(1)} kg`;
+                        }
+                    }
+                }
+            },
+            animation: { duration: 320, easing: 'easeOutQuart' }
+        }
+    });
+
+    // データ描画 & 統計表示
+    function draw(y, m) {
+        updateTitle(y, m);
+
+        const data = buildDailyTotals(window.userWeightRecords || [], y, m);
+        const days = getDaysInMonth(y, m);
+        chart.data.labels = Array.from({ length: days }, (_, i) => i + 1);
+        chart.data.datasets[0].data = data;
+        chart.update();
+
+        const { min, max, avg } = calcStats(data);
+        if (metaStats) {
+            metaStats.innerHTML = `最小 <strong>${fmt(min)}</strong> / 最大 <strong>${fmt(max)}</strong> / 平均 <strong>${fmt(avg)}</strong> kg`;
+        }
+    }
+
+    // グローバルに公開
+    window.updateWeightChart = () => {
+        draw(+yearSel.value, +monthSel.value);
+    };
+
+    // イベントリスナー
+    yearSel.addEventListener('change', () => {
+        const selectedYear = +yearSel.value;
+        const selectedMonth = +monthSel.value;
+
+        // 選択を保存
+        localStorage.setItem('weightChart_selectedYear', selectedYear);
+        localStorage.setItem('weightChart_selectedMonth', selectedMonth);
+
+        draw(selectedYear, selectedMonth);
+    });
+
+    monthSel.addEventListener('change', () => {
+        const selectedYear = +yearSel.value;
+        const selectedMonth = +monthSel.value;
+
+        // 選択を保存
+        localStorage.setItem('weightChart_selectedYear', selectedYear);
+        localStorage.setItem('weightChart_selectedMonth', selectedMonth);
+
+        draw(selectedYear, selectedMonth);
+    });
+
+    const jumpTodayBtn = document.getElementById('jumpTodayBtn');
+    if (jumpTodayBtn) {
+        jumpTodayBtn.addEventListener('click', () => {
+            const now = new Date();
+            yearSel.value = now.getFullYear();
+            monthSel.value = now.getMonth() + 1;
+            draw(+yearSel.value, +monthSel.value);
+        });
+    }
+
+    // 初期データ取得と描画
+    fetchWeightDataAndInitChart(csrfToken, () => {
+        draw(+yearSel.value, +monthSel.value);
+    });
+}
+
+// ====== データ取得関数 ======
+async function fetchWeightDataAndInitChart(csrfToken, callback) {
+    try {
+        // キャッシュされたデータがあるかチェック
+        const cachedData = localStorage.getItem('weightChart_cachedData');
+        const cacheTimestamp = localStorage.getItem('weightChart_cacheTimestamp');
+        const now = Date.now();
+
+        // キャッシュが5分以内の場合は使用
+        if (cachedData && cacheTimestamp && (now - parseInt(cacheTimestamp) < 5 * 60 * 1000)) {
+            console.log('Using cached weight data');
+            window.userWeightRecords = JSON.parse(cachedData);
+            if (callback) callback();
+            return;
+        }
+
+        console.log('Fetching weight data...');
+        const res = await fetch('/user/weights', {
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': csrfToken
+            }
+        });
+
+        if (!res.ok) {
+            throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        const data = await res.json();
+        console.log('Weight data received:', data);
+
+        window.userWeightRecords = data.weights || [];
+
+        // データをキャッシュに保存
+        localStorage.setItem('weightChart_cachedData', JSON.stringify(window.userWeightRecords));
+        localStorage.setItem('weightChart_cacheTimestamp', now.toString());
+
+        console.log('Weight records stored:', window.userWeightRecords);
+
+        if (callback) callback();
+    } catch (error) {
+        console.error('データ取得エラー:', error);
+        // エラー時はキャッシュデータを使用
+        const cachedData = localStorage.getItem('weightChart_cachedData');
+        if (cachedData) {
+            console.log('Using cached data due to fetch error');
+            window.userWeightRecords = JSON.parse(cachedData);
+        } else {
+            window.userWeightRecords = [];
+        }
+        if (callback) callback();
+    }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM loaded');
+
     // --- Blade側で埋め込む<meta>タグからURLを取得 ---
     const routeDailyComplete = document.querySelector('meta[name="route-daily-complete"]')?.content;
     const routeDailyChange = document.querySelector('meta[name="route-daily-change"]')?.content;
@@ -145,6 +394,9 @@ document.addEventListener('DOMContentLoaded', () => {
         console.error('CSRFトークンが見つかりません');
         return;
     }
+
+    // グローバル変数として体重データを保持
+    window.userWeightRecords = window.userWeightRecords || [];
 
     // コントローラから渡されたイベント配列
     const events = window._calendarEvents || [];
@@ -164,12 +416,25 @@ document.addEventListener('DOMContentLoaded', () => {
             }
 
             const calendar = new FullCalendar.Calendar(calendarEl, {
-                initialView: 'dayGridMonth',
+                initialView: "dayGridMonth",
+                locale: "ja",
                 events: events,
+                fixedWeekCount: false,
+                buttonText: {
+                    today: "今日",
+                },
+                dayCellContent: function (arg) {
+                    // 数字だけ抽出
+                    return { html: String(arg.date.getDate()) };
+                },
                 dateClick(info) {
                     const ev = calendar.getEventById(info.dateStr);
-                    if (ev) showChallengeModal(ev.extendedProps.content, info.dateStr);
-                }
+                    if (ev)
+                        showChallengeModal(
+                            ev.extendedProps.content,
+                            info.dateStr
+                        );
+                },
             });
             calendar.render();
 
@@ -260,9 +525,6 @@ document.addEventListener('DOMContentLoaded', () => {
     console.log('Weight store route:', routeWeightStore);
 
     if (weightForm && routeWeightStore) {
-        // グローバル変数として体重データを保持
-        window.userWeightRecords = window.userWeightRecords || [];
-
         weightForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             console.log('Weight form submitted');
@@ -304,6 +566,10 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (data.success) {
                     window.userWeightRecords = data.allWeights;
                     console.log('Updated weight records:', window.userWeightRecords);
+
+                    // キャッシュを更新
+                    localStorage.setItem('weightChart_cachedData', JSON.stringify(window.userWeightRecords));
+                    localStorage.setItem('weightChart_cacheTimestamp', Date.now().toString());
 
                     // グラフ更新関数が存在する場合は実行
                     if (typeof window.updateWeightChart === 'function') {
@@ -348,8 +614,47 @@ document.addEventListener('DOMContentLoaded', () => {
     const yearSel = document.getElementById('yearSel');
     const monthSel = document.getElementById('monthSel');
 
+    // グラフの初期化（Chart.jsが読み込まれるまで待つ）
     if (chartEl && yearSel && monthSel) {
-        initWeightChart();
+        console.log('Chart elements found, initializing...');
+
+        function waitForChartJs() {
+            if (typeof Chart !== 'undefined') {
+                console.log('Chart.js loaded, initializing weight chart');
+                initWeightChart(csrfToken);
+            } else {
+                console.log('Waiting for Chart.js...');
+                setTimeout(waitForChartJs, 100);
+            }
+        }
+
+        waitForChartJs();
+    } else {
+        console.log('Chart elements not found');
+    }
+
+    //  ヘッダー：ページタイトル自動表示
+    const pageMapping = {
+        "/": "ホーム",
+        "./": "ホーム",
+        "/weight": "体重管理",
+        "./weight": "体重管理",
+    };
+    // -----------------
+    // debag
+    console.log("app.js loaded", Math.random());
+    updateCurrentPageName();
+
+    function updateCurrentPageName() {
+        const currentPageElement = document.getElementById("currentPageName");
+        const currentPath = window.location.pathname;
+        const pageName = pageMapping[currentPath] || "ホーム";
+        // console.log("currentPath:", currentPath, "pageName:", pageName);
+        // console.log("updateCurrentPageName called!");
+
+        if (currentPageElement) {
+            currentPageElement.textContent = pageName;
+        }
     }
 
     // ログアウト
@@ -379,165 +684,3 @@ document.addEventListener('DOMContentLoaded', () => {
         reloadBtn.addEventListener('click', () => location.reload());
     }
 });
-
-// ===== 体重グラフ関連の関数 =====
-function initWeightChart() {
-    const yearSel = document.getElementById('yearSel');
-    const monthSel = document.getElementById('monthSel');
-    const metaStats = document.getElementById('metaStats');
-    const titleEl = document.getElementById('cjsTitle');
-    const ctx = document.getElementById('chart')?.getContext('2d');
-
-    if (!yearSel || !monthSel || !ctx) return;
-
-    // ユーティリティ関数
-    function getDaysInMonth(y, m) { return new Date(y, m, 0).getDate(); }
-
-    function buildDailyTotals(records, y, m) {
-        const days = getDaysInMonth(y, m);
-        const totals = Array(days).fill(null);
-        records.forEach(r => {
-            const d = new Date(r.date);
-            if (d.getFullYear() === y && d.getMonth() + 1 === m) {
-                const idx = d.getDate() - 1;
-                totals[idx] = r.weight;
-            }
-        });
-        return totals;
-    }
-
-    function calcStats(data) {
-        const nums = data.filter(v => v != null);
-        if (!nums.length) return { min: null, max: null, avg: null };
-        const min = Math.min(...nums);
-        const max = Math.max(...nums);
-        const avg = nums.reduce((a, b) => a + b, 0) / nums.length;
-        return { min, max, avg };
-    }
-
-    function fmt(num) { return (num == null ? '--' : num.toFixed(1)); }
-
-    // 年月セレクタを構築
-    const now = new Date();
-    const nowY = now.getFullYear();
-    for (let y = nowY - 2; y <= nowY + 1; y++) yearSel.add(new Option(y, y));
-    for (let m = 1; m <= 12; m++) monthSel.add(new Option(m, m));
-    yearSel.value = nowY;
-    monthSel.value = now.getMonth() + 1;
-
-    // タイトル更新
-    function updateTitle(y, m) {
-        const isThisMonth = (y === nowY && m === (now.getMonth() + 1));
-        if (titleEl) {
-            titleEl.textContent = `${y}年${m}月` + (isThisMonth ? ' 今月' : '');
-        }
-    }
-
-    // Chart.js セットアップ
-    const rootScope = document.querySelector('.cjs-scope');
-    const BRAND_RGB = rootScope ? getComputedStyle(rootScope).getPropertyValue('--cjs-brand-rgb')?.trim() || '0,191,165' : '0,191,165';
-    const GRID_COLOR = rootScope ? getComputedStyle(rootScope).getPropertyValue('--cjs-border-grid')?.trim() || '#d0d0d0' : '#d0d0d0';
-    const FG_MUTED = rootScope ? getComputedStyle(rootScope).getPropertyValue('--cjs-fg-muted')?.trim() || '#666' : '#666';
-
-    function makeFillGradient(ctx, area) {
-        const g = ctx.createLinearGradient(0, area.top, 0, area.bottom);
-        g.addColorStop(0, `rgba(${BRAND_RGB},0.25)`);
-        g.addColorStop(1, `rgba(${BRAND_RGB},0.00)`);
-        return g;
-    }
-
-    const chart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: [],
-            datasets: [{
-                label: '体重 (kg)',
-                data: [],
-                borderColor: `rgba(${BRAND_RGB},1)`,
-                backgroundColor: (context) => {
-                    const { chart, chartArea } = context;
-                    if (!chartArea) return `rgba(${BRAND_RGB},0.25)`;
-                    return makeFillGradient(chart.ctx, chartArea);
-                },
-                fill: true,
-                tension: 0.25,
-                spanGaps: true,
-                pointRadius: 4,
-                pointHoverRadius: 6,
-                pointBackgroundColor: `rgba(${BRAND_RGB},1)`,
-                pointBorderWidth: 0
-            }]
-        },
-        options: {
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    grid: { display: false },
-                    ticks: { color: FG_MUTED }
-                },
-                y: {
-                    beginAtZero: false,
-                    grid: { color: GRID_COLOR, lineWidth: 0.5 },
-                    ticks: { color: FG_MUTED }
-                }
-            },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    callbacks: {
-                        title: (items) => {
-                            if (!items.length) return '';
-                            const day = items[0].label.toString().padStart(2, '0');
-                            const y = yearSel.value;
-                            const m = String(monthSel.value).padStart(2, '0');
-                            return `${y}-${m}-${day}`;
-                        },
-                        label: (ctx) => {
-                            const v = ctx.parsed.y;
-                            return v == null ? 'データなし' : `${v.toFixed(1)} kg`;
-                        }
-                    }
-                }
-            },
-            animation: { duration: 320, easing: 'easeOutQuart' }
-        }
-    });
-
-    // データ描画 & 統計表示
-    function draw(y, m) {
-        updateTitle(y, m);
-
-        const days = getDaysInMonth(y, m);
-        const data = buildDailyTotals(window.userWeightRecords || [], y, m);
-        chart.data.labels = Array.from({ length: days }, (_, i) => i + 1);
-        chart.data.datasets[0].data = data;
-        chart.update();
-
-        const { min, max, avg } = calcStats(data);
-        if (metaStats) {
-            metaStats.innerHTML = `最小 <strong>${fmt(min)}</strong> / 最大 <strong>${fmt(max)}</strong> / 平均 <strong>${fmt(avg)}</strong> kg`;
-        }
-    }
-
-    // グローバルに公開
-    window.updateWeightChart = () => {
-        draw(+yearSel.value, +monthSel.value);
-    };
-
-    // イベントリスナー
-    yearSel.addEventListener('change', () => draw(+yearSel.value, +monthSel.value));
-    monthSel.addEventListener('change', () => draw(+yearSel.value, +monthSel.value));
-
-    const jumpTodayBtn = document.getElementById('jumpTodayBtn');
-    if (jumpTodayBtn) {
-        jumpTodayBtn.addEventListener('click', () => {
-            const now = new Date();
-            yearSel.value = now.getFullYear();
-            monthSel.value = now.getMonth() + 1;
-            draw(+yearSel.value, +monthSel.value);
-        });
-    }
-
-    // 初期描画
-    draw(+yearSel.value, +monthSel.value);
-}

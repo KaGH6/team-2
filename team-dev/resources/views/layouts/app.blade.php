@@ -17,7 +17,7 @@
     </script>
     @endisset
 
-    <title>@yield('title', 'MyApp')</title>
+    <title>@yield('title', 'ミライボディ')</title>
 
     {{-- FullCalendar CSS --}}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.css">
@@ -30,7 +30,22 @@
     @if (!in_array(Route::currentRouteName(), ['login', 'register']))
     <header class="header">
         <div class="header__container">
-            <h1 class="header__logo"><a href="/"></a></h1>
+            <h1 class="header__logo">
+                <a href="/">
+                    <!-- シンプルロゴ -->
+                    <!-- <svg width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" stroke="currentColor" stroke-width="1.5" fill="none" aria-hidden="true">
+                        <path d="M2 12L5 9.3M22 12L19 9.3M19 9.3L12 3L5 9.3M19 9.3V21H5V9.3"/>
+                    </svg> -->
+                    <!-- オリジナルロゴ -->
+                    <svg width="60" height="60" viewBox="0 0 24 24">
+                        <image href="/favicon.ico" x="0" y="0" width="24" height="24" />
+                    </svg>
+                </a>
+            </h1>
+            <div class="header__current-page">
+                <span id="currentPageName"></span>
+            </div>
+
             <input type="checkbox" id="check">
             <label for="check" class="hamburger">
                 <span></span>
@@ -51,6 +66,8 @@
     <script src="https://unpkg.com/js-circle-progress/dist/circle-progress.min.js" type="module"></script>
     {{-- FullCalendarをapp.jsより前に読み込む --}}
     <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js"></script>
+    {{-- progressbar.js --}}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/progressbar.js/0.6.1/progressbar.min.js"></script>
 
     @stack('scripts')
 </body>

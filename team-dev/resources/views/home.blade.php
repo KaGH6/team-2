@@ -17,7 +17,7 @@
             </audio>
 
             <div class="wrapper flex m-auto">
-                <div class="flex items-center">
+                <div class="flex items-center relative">
                     <button id="change-btn" aria-label="Reload">
                         <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
                             <polyline points="23 4 23 10 17 10" />
