@@ -39,7 +39,7 @@ function playChime() {
 
 function finish(btn) {
     btn.disabled = true;
-    btn.textContent = "達成済み";
+    btn.textContent = "達成！";
 }
 
 function createRipple(e, btn) {
@@ -446,7 +446,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (todaysEvent) {
                     taskEl.innerHTML = todaysEvent.extendedProps.content;
                     if (todaysEvent.extendedProps.is_completed) {
-                        completeBtn.textContent = '完了済み';
+                        completeBtn.textContent = '達成！';
                         completeBtn.disabled = true;
                     }
                 } else {
@@ -478,7 +478,7 @@ document.addEventListener('DOMContentLoaded', () => {
                             if (oldEv) oldEv.remove();
                             calendar.addEvent(data);
                             taskEl.innerHTML = data.extendedProps.content;
-                            completeBtn.textContent = '完了済み';
+                            completeBtn.textContent = '達成！';
                             completeBtn.disabled = true;
 
                             const eventIndex = events.findIndex(e => e.id === data.id);
@@ -509,7 +509,7 @@ document.addEventListener('DOMContentLoaded', () => {
                                 if (oldEv) oldEv.remove();
                                 calendar.addEvent(data);
                                 taskEl.innerHTML = data.extendedProps.content;
-                                completeBtn.textContent = '完了する';
+                                completeBtn.textContent = '達成！';
                                 completeBtn.disabled = false;
                             })
                             .catch(() => alert('お題変更に失敗しました'));
